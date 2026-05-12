@@ -1,0 +1,36 @@
+document.addEventListener('DOMContentLoaded', function() {
+    const captureBtn = document.getElementById('capture-btn');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    captureBtn.addEventListener('click', function() {
+        // التقاط الصورة من المتصفح
+        const mediaDevices = navigator.mediaDevices;
+        mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
+
+                // التقاط الصورة
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // ترقيم الصورة إلى الخادم
+                const formData = new FormData();
+                const file = new File([canvas.toDataURL().split(',')[1], 'image/png'], 'image.png', { type: 'image/png' });
+                formData.append('image', file);
+
+                // ارسال الصورة إلى الخادم
+                fetch('https://example.com/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => console.log(data))
+                .catch(error => console.error(error));
+            })
+            .catch(error => console.error(error));
+    });
+});
